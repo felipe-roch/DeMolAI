@@ -1,4 +1,6 @@
+import re
 import os
+import time
 import base64
 import streamlit as st
 from openai import OpenAI
@@ -164,6 +166,17 @@ REGRAS ABSOLUTAS:
 st.write("# ⚔️ Jacques de MolAI")
 st.caption("Converse com Jacques de Molay, o último Grande Mestre dos Templários.")
 
+# Verifica bloqueio
+if "bloqueado_ate" in st.session_state:
+    restante = int(st.session_state["bloqueado_ate"] - time.time())
+    if restante > 0:
+        st.error(f"⏳ Jacques de Molay está em repouso. Volte em {restante // 60}min {restante % 60}s.")
+        st.stop()
+        time.sleep(1)
+        st.rerun()
+    else:
+        del st.session_state["bloqueado_ate"]
+
 # Inicializa histórico com o system prompt
 if "lista_mensagens" not in st.session_state:
     st.session_state["lista_mensagens"] = [
@@ -183,30 +196,38 @@ for mensagem in st.session_state["lista_mensagens"][1:]:
 texto_usuario = st.chat_input("Faça uma pergunta para Jacques de Molay...")
 
 if texto_usuario:
-    # Exibe mensagem do usuário
     with st.chat_message("user"):
         st.write(f"**Você:** {texto_usuario}")
 
-    # Adiciona ao histórico
     st.session_state["lista_mensagens"].append({
         "role": "user",
         "content": texto_usuario
     })
 
-    # Chama a API do Groq
-    with st.spinner("Jacques de Molay está respondendo..."):
-        resposta = cliente.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=st.session_state["lista_mensagens"]
-        )
-        texto_resposta = resposta.choices[0].message.content
+    try:
+        with st.spinner("Jacques de Molay está respondendo..."):
+            resposta = cliente.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=st.session_state["lista_mensagens"]
+            )
+            texto_resposta = resposta.choices[0].message.content
+            wait_seconds = None
 
-    # Exibe resposta
-    with st.chat_message("assistant"):
-        st.write(f"**Jacques de Molay:** {texto_resposta}")
+        with st.chat_message("assistant"):
+            st.write(f"**Jacques de Molay:** {texto_resposta}")
 
-    # Salva resposta no histórico
-    st.session_state["lista_mensagens"].append({
-        "role": "assistant",
-        "content": texto_resposta
-    })
+        st.session_state["lista_mensagens"].append({
+            "role": "assistant",
+            "content": texto_resposta
+        })
+
+    except Exception as e:
+        mensagem_erro = str(e)
+        segundos = 300  # padrão de 5 minutos
+        import re
+        match = re.search(r'try again in (\d+)m(\d+)', mensagem_erro)
+        if match:
+            segundos = int(match.group(1)) * 60 + int(match.group(2))
+        st.session_state["bloqueado_ate"] = time.time() + segundos
+        st.warning(f"Jacques de Molay precisa descansar. Tente novamente em {segundos // 60}min {segundos % 60}s.")
+        st.rerun()
