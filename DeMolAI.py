@@ -171,9 +171,9 @@ if "bloqueado_ate" in st.session_state:
     restante = int(st.session_state["bloqueado_ate"] - time.time())
     if restante > 0:
         st.error(f"⏳ Jacques de Molay está em repouso. Volte em {restante // 60}min {restante % 60}s.")
+        if st.button("🔄 Verificar se já posso perguntar"):
+            st.rerun()
         st.stop()
-        time.sleep(1)
-        st.rerun()
     else:
         del st.session_state["bloqueado_ate"]
 
