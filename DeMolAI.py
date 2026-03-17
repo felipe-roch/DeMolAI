@@ -224,7 +224,6 @@ if texto_usuario:
     except Exception as e:
         mensagem_erro = str(e)
         segundos = 300  # padrão de 5 minutos
-        import re
         match = re.search(r'try again in (\d+)m(\d+)', mensagem_erro)
         if match:
             segundos = int(match.group(1)) * 60 + int(match.group(2))
